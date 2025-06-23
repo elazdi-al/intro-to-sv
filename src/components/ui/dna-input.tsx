@@ -153,57 +153,8 @@ export default function DNAInput({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <Label htmlFor={id} className="flex items-center gap-2">
-          <Dna className="h-4 w-4" />
-          {label}
-        </Label>
-        {showStatistics && stats && (
-          <Badge variant="outline" className="text-xs">
-            GC: {stats.gcContent}%
-          </Badge>
-        )}
-      </div>
 
-      {/* Base buttons for easy input */}
-      <div className="flex gap-2">
-        <div className="flex gap-1">
-          {['A', 'T', 'G', 'C'].map((base) => (
-            <Button
-              key={base}
-              variant="outline"
-              size="sm"
-              onClick={() => handleBaseClick(base)}
-              className="w-8 h-8 p-0 font-mono font-bold"
-              type="button"
-            >
-              {base}
-            </Button>
-          ))}
-        </div>
-        <div className="flex gap-1 ml-auto">
-          {validation.cleaned && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCopy}
-              className="gap-1"
-              type="button"
-            >
-              <Copy className="h-3 w-3" />
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleClear}
-            className="gap-1"
-            type="button"
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        </div>
-      </div>
+      
 
       {/* Main textarea input */}
       <Textarea
@@ -250,17 +201,7 @@ export default function DNAInput({
         </div>
       )}
 
-      {/* Statistics display */}
-      {showStatistics && stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center">
-          {Object.entries(stats.counts).map(([base, count]) => (
-            <div key={base} className="bg-gray-50 p-2 rounded border">
-              <div className="font-mono font-bold text-lg">{count}</div>
-              <div className="text-xs text-gray-600">{base}</div>
-            </div>
-          ))}
-        </div>
-      )}
+      
     </div>
   );
 } 

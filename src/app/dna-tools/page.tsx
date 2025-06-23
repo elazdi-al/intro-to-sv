@@ -14,8 +14,6 @@ import {
 // Import tool components
 import ProteinTranslationTool from '@/components/tools/ProteinTranslationTool';
 import MutationAnalysisTool from '@/components/tools/MutationAnalysisTool';
-import PCRPrimerTool from '@/components/tools/PCRPrimerTool';
-
 
 export default function DNAToolsPage() {
   const [activeTab, setActiveTab] = useState('translation');
@@ -42,7 +40,7 @@ export default function DNAToolsPage() {
 
       {/* Tools Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="translation" className="flex items-center gap-2">
             <Dna className="h-4 w-4" />
             <span className="hidden sm:inline">Traduction</span>
@@ -50,10 +48,6 @@ export default function DNAToolsPage() {
           <TabsTrigger value="mutations" className="flex items-center gap-2">
             <Shuffle className="h-4 w-4" />
             <span className="hidden sm:inline">Mutations</span>
-          </TabsTrigger>
-          <TabsTrigger value="pcr" className="flex items-center gap-2">
-            <Link className="h-4 w-4" />
-            <span className="hidden sm:inline">PCR</span>
           </TabsTrigger>
         </TabsList>
 
@@ -65,9 +59,7 @@ export default function DNAToolsPage() {
           <MutationAnalysisTool />
         </TabsContent>
 
-        <TabsContent value="pcr" className="mt-6">
-          <PCRPrimerTool />
-        </TabsContent>
+        
       </Tabs>
     </div>
   );

@@ -21,6 +21,7 @@
     "@types/string-algorithms": "^1.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "fraction.js": "^5.2.2",
     "js-longest-repeated-substring": "^1.0.3",
     "lucide-react": "^0.522.0",
     "next": "15.3.4",
@@ -28,8 +29,10 @@
     "react-dom": "^19.0.0",
     "react-phylogeny-tree": "^0.0.4",
     "recharts": "^2.15.4",
+    "sonner": "^2.0.5",
     "string-algorithms": "^1.0.31",
-    "tailwind-merge": "^3.3.1"
+    "tailwind-merge": "^3.3.1",
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

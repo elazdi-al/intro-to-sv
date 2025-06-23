@@ -4,6 +4,7 @@ import "./globals.css";
 import Link from "next/link";
 import { Dna, Calculator, TreePine, Home, Brain, Users, Microscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -72,6 +73,7 @@ export default function RootLayout({
             {children}
           </main>
         </div>
+        <Toaster position="bottom-right" />
       </body>
     </html>
   );

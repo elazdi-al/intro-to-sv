@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Fraction from 'fraction.js'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -16,6 +17,10 @@ interface DistanceMatrix {
   [key: string]: { [key: string]: number }
 }
 
+interface FractionMatrix {
+  [key: string]: { [key: string]: Fraction }
+}
+
 interface ClusterNode {
   name: string
   height: number
@@ -29,9 +34,18 @@ interface Step {
   stepNumber: number
   description: string
   matrix: DistanceMatrix
+  fractionMatrix?: FractionMatrix
   minDistance: number
   clusteredSpecies: string[]
   newCluster: string
+  calculations?: { [key: string]: CalculationDetail }
+}
+
+interface CalculationDetail {
+  species: string
+  calculation: string
+  result: string
+  decimal: number
 }
 
 interface DNASequence {
@@ -339,8 +353,31 @@ export default function UPGMATool() {
     return { min, pair }
   }
 
-  // Perform UPGMA clustering
+  // Helper function to format fractions
+  const formatFraction = (numerator: number, denominator: number): string => {
+    const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b)
+    const divisor = gcd(Math.abs(numerator), Math.abs(denominator))
+    const num = numerator / divisor
+    const den = denominator / divisor
+    return den === 1 ? `${num}` : `${num}/${den}`
+  }
+
+  // Convert distance matrix to fraction matrix
+  const createFractionMatrix = (distMatrix: DistanceMatrix): FractionMatrix => {
+    const fracMatrix: FractionMatrix = {}
+    Object.keys(distMatrix).forEach(row => {
+      fracMatrix[row] = {}
+      Object.keys(distMatrix[row]).forEach(col => {
+        fracMatrix[row][col] = new Fraction(distMatrix[row][col])
+      })
+    })
+    return fracMatrix
+  }
+
+  // Perform UPGMA clustering with exact fraction calculations
   const performUPGMA = (initialMatrix: DistanceMatrix): { steps: Step[], tree: ClusterNode } => {
+    // Convert to fraction matrix for exact calculations
+    let fractionMatrix: FractionMatrix = createFractionMatrix(initialMatrix)
     let matrix = JSON.parse(JSON.stringify(initialMatrix))
     let clusters: { [key: string]: ClusterNode } = {}
     let clusterSizes: { [key: string]: number } = {}
@@ -368,41 +405,93 @@ export default function UPGMATool() {
         isLeaf: false
       }
 
-      steps.push({
-        stepNumber,
-        description: `Cluster ${species1} and ${species2} (distance = ${min})`,
-        matrix: JSON.parse(JSON.stringify(matrix)),
-        minDistance: min,
-        clusteredSpecies: [species1, species2],
-        newCluster: newClusterName
-      })
-
-      // Create new matrix
-      const newMatrix: DistanceMatrix = {}
-      const remainingSpecies = Object.keys(matrix).filter(s => s !== species1 && s !== species2)
-      const allSpecies = [newClusterName, ...remainingSpecies]
-      
-      allSpecies.forEach(s => (newMatrix[s] = {}))
+      // Calculate exact fractions for new distances
+      const calculations: { [key: string]: CalculationDetail } = {}
+      const remainingSpecies = Object.keys(fractionMatrix).filter(s => s !== species1 && s !== species2)
 
       for (const species of remainingSpecies) {
-        const size1 = clusterSizes[species1] || 1
-        const size2 = clusterSizes[species2] || 1
-        const dist1 = matrix[species1][species]
-        const dist2 = matrix[species2][species]
-        const newDistance = (dist1 * size1 + dist2 * size2) / (size1 + size2)
-        newMatrix[newClusterName][species] = newDistance
-        newMatrix[species][newClusterName] = newDistance
+        const size1 = new Fraction(clusterSizes[species1] || 1)
+        const size2 = new Fraction(clusterSizes[species2] || 1)
+        const dist1 = fractionMatrix[species1][species]
+        const dist2 = fractionMatrix[species2][species]
+        
+        // UPGMA formula: (d1*n1 + d2*n2) / (n1 + n2)
+        const numerator = dist1.mul(size1).add(dist2.mul(size2))
+        const denominator = size1.add(size2)
+        const result = numerator.div(denominator)
+        
+        calculations[species] = {
+          species,
+          calculation: `(${dist1.toFraction()} × ${size1.toFraction()} + ${dist2.toFraction()} × ${size2.toFraction()}) / (${size1.toFraction()} + ${size2.toFraction()}) = ${numerator.toFraction()} / ${denominator.toFraction()}`,
+          result: result.toFraction(),
+          decimal: parseFloat(result.valueOf().toFixed(2))
+        }
       }
 
+                    // Deep copy fraction matrix for step storage
+      const stepFractionMatrix: FractionMatrix = {}
+      Object.keys(fractionMatrix).forEach(row => {
+        stepFractionMatrix[row] = {}
+        Object.keys(fractionMatrix[row]).forEach(col => {
+          stepFractionMatrix[row][col] = new Fraction(fractionMatrix[row][col])
+        })
+      })
+
+      steps.push({
+        stepNumber,
+        description: `Regrouper ${species1} et ${species2} (distance minimale = ${min})`,
+        matrix: JSON.parse(JSON.stringify(matrix)),
+        fractionMatrix: stepFractionMatrix,
+        minDistance: min,
+        clusteredSpecies: [species1, species2],
+        newCluster: newClusterName,
+        calculations
+      })
+
+      // Create new fraction matrix and regular matrix
+      const newFractionMatrix: FractionMatrix = {}
+      const newMatrix: DistanceMatrix = {}
+      const allSpecies = [newClusterName, ...remainingSpecies]
+      
+      allSpecies.forEach(s => {
+        newMatrix[s] = {}
+        newFractionMatrix[s] = {}
+      })
+
+      for (const species of remainingSpecies) {
+        const size1 = new Fraction(clusterSizes[species1] || 1)
+        const size2 = new Fraction(clusterSizes[species2] || 1)
+        const dist1 = fractionMatrix[species1][species]
+        const dist2 = fractionMatrix[species2][species]
+        
+        // Calculate new distance using exact fractions
+        const numerator = dist1.mul(size1).add(dist2.mul(size2))
+        const denominator = size1.add(size2)
+        const newFractionDistance = numerator.div(denominator)
+        const newDecimalDistance = parseFloat(newFractionDistance.valueOf().toFixed(10))
+        
+        newFractionMatrix[newClusterName][species] = newFractionDistance
+        newFractionMatrix[species][newClusterName] = newFractionDistance
+        newMatrix[newClusterName][species] = newDecimalDistance
+        newMatrix[species][newClusterName] = newDecimalDistance
+      }
+
+      // Copy existing distances
       for (let i = 0; i < remainingSpecies.length; i++) {
         for (let j = i; j < remainingSpecies.length; j++) {
           const s1 = remainingSpecies[i], s2 = remainingSpecies[j]
           newMatrix[s1][s2] = matrix[s1][s2]
           newMatrix[s2][s1] = matrix[s2][s1]
+          newFractionMatrix[s1][s2] = fractionMatrix[s1][s2]
+          newFractionMatrix[s2][s1] = fractionMatrix[s2][s1]
         }
       }
+      
       newMatrix[newClusterName][newClusterName] = 0
+      newFractionMatrix[newClusterName][newClusterName] = new Fraction(0)
+      
       matrix = newMatrix
+      fractionMatrix = newFractionMatrix
 
       delete clusters[species1]
       delete clusters[species2]
@@ -481,13 +570,28 @@ export default function UPGMATool() {
     setSequences(exampleSequences)
   }
 
-  const renderMatrix = (matrix: DistanceMatrix, highlightPair?: string[], title?: string) => {
+  const renderMatrix = (matrix: DistanceMatrix | FractionMatrix, highlightPair?: string[]) => {
     const species = Object.keys(matrix).sort()
+    
+    const formatValue = (row: string, col: string): string => {
+      const cell = matrix[row][col]
+      if (typeof cell === 'number') {
+        // Regular DistanceMatrix
+        if (cell === 0) return '0'
+        if (Number.isInteger(cell)) return cell.toString()
+        const simplified = formatFraction(Math.round(cell * 100), 100)
+        if (simplified.includes('/') && simplified.length <= 5) {
+          return simplified
+        }
+        return cell.toFixed(2)
+      } else {
+        // FractionMatrix (Fraction object)
+        return cell.toFraction()
+      }
+    }
+    
     return (
       <div className="space-y-2">
-        {title && (
-          <h4 className="font-medium text-sm text-gray-700">{title}</h4>
-        )}
         <div className="overflow-x-auto">
           <table className="min-w-full border border-gray-200 text-sm">
             <thead>
@@ -523,8 +627,7 @@ export default function UPGMATool() {
                         isHighlighted ? 'bg-red-200 font-bold' : 
                         rowIndex === colIndex ? 'bg-gray-100' : ''
                       }`}>
-                        {matrix[row][col] !== undefined ? 
-                          (rowIndex === colIndex ? '0' : matrix[row][col].toFixed(1)) : '-'}
+                        {matrix[row][col] !== undefined ? formatValue(row, col) : '-'}
                       </td>
                     )
                   })}
@@ -534,8 +637,9 @@ export default function UPGMATool() {
           </table>
         </div>
         {highlightPair && (
-          <div className="text-xs text-red-600 font-medium">
-            → Minimum distance: {matrix[highlightPair[0]][highlightPair[1]].toFixed(1)} between {highlightPair[0]} and {highlightPair[1]}
+          <div className="text-sm text-red-600 font-bold mt-2 p-2 bg-red-50 rounded">
+            Distance minimale: {formatValue(highlightPair[0], highlightPair[1])} entre {highlightPair[0]} et {highlightPair[1]}
+            → On regroupe ces deux espèces
           </div>
         )}
       </div>
@@ -644,7 +748,10 @@ export default function UPGMATool() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {renderMatrix(result.distances, undefined, "Distance matrix calculated from input sequences/data")}
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-gray-700">Matrice des distances calculée à partir des séquences</h4>
+                    {renderMatrix(createFractionMatrix(result.distances))}
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -654,61 +761,67 @@ export default function UPGMATool() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Calculator className="h-5 w-5 text-green-600" />
-                  UPGMA Clustering Steps
+                  Étapes de regroupement UPGMA
                 </CardTitle>
                 <CardDescription>
-                  Step-by-step clustering process showing how the phylogenetic tree is constructed
+                  Processus étape par étape montrant les calculs de fractions pour construire l'arbre phylogénétique
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-8">
                 {result.steps.map((step, index) => (
-                  <div key={index} className="space-y-3">
+                  <div key={index} className="space-y-4">
                     {/* Step Header */}
-                    <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border">
-                      <Badge variant="outline" className="bg-white">
-                        Étape {step.stepNumber}
-                      </Badge>
-                      <div className="flex-1">
-                        <div className="font-medium text-sm text-gray-900">
-                          {step.description}
+                    <div className="p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border-2 border-blue-300">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Badge variant="outline" className="bg-white text-blue-700 border-blue-400 text-lg px-3 py-1">
+                          Étape {step.stepNumber}
+                        </Badge>
+                        <div className="text-lg font-bold text-gray-900">
+                          Distance minimale = <span className="text-red-600">{formatFraction(Math.round(step.minDistance * 100), 100)}</span>
                         </div>
-                        <div className="text-xs text-gray-600 mt-1">
-                          Distance minimale: <span className="font-semibold text-red-600">{step.minDistance.toFixed(1)}</span>
-                          {step.clusteredSpecies.length === 2 && (
-                            <> • Nouveau cluster: <span className="font-semibold text-blue-600">{step.newCluster}</span></>
-                          )}
-                        </div>
+                      </div>
+                      <div className="text-base font-semibold text-blue-800">
+                        → On regroupe <span className="bg-yellow-200 px-2 py-1 rounded">{step.clusteredSpecies[0]}</span> et <span className="bg-yellow-200 px-2 py-1 rounded">{step.clusteredSpecies[1]}</span> en <span className="bg-green-200 px-2 py-1 rounded">{step.newCluster}</span>
                       </div>
                     </div>
 
                     {/* Matrix for this step */}
-                    <div className="pl-4 border-l-2 border-gray-200">
-                      {renderMatrix(
-                        step.matrix, 
-                        step.clusteredSpecies,
-                        `Matrice avant regroupement (Étape ${step.stepNumber})`
+                    <div className="pl-6 border-l-4 border-green-200 space-y-4">
+                                              <div>
+                          <h5 className="font-medium text-gray-900 mb-2">Matrice des distances (Étape {step.stepNumber})</h5>
+                          {renderMatrix(step.fractionMatrix || step.matrix, step.clusteredSpecies)}
+                        </div>
+
+                      {/* Fraction Calculations */}
+                      {step.calculations && Object.keys(step.calculations).length > 0 && (
+                        <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                          <h5 className="font-semibold text-amber-800 mb-3">
+                            Calculs des nouvelles distances
+                          </h5>
+                          <div className="space-y-3">
+                            {Object.values(step.calculations).map((calc, calcIndex) => (
+                              <div key={calcIndex} className="bg-white rounded p-3 border">
+                                <div className="text-sm">
+                                  <div className="font-medium text-gray-900 mb-1">
+                                    d({step.newCluster}, {calc.species}) = {calc.calculation}
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="text-lg font-bold text-blue-600">{calc.result}</span>
+                                    <span className="text-gray-500 ml-2">= {calc.decimal.toFixed(2)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
 
-                    {/* Arrow indicating progression */}
-                    {index < result.steps.length - 1 && (
-                      <div className="flex justify-center py-2">
-                        <ArrowDown className="h-5 w-5 text-gray-400" />
-                      </div>
-                    )}
+                  
+                   
                   </div>
                 ))}
 
-                {/* Summary */}
-                <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
-                  <h4 className="font-semibold text-green-800 mb-2">Résumé du processus UPGMA</h4>
-                  <div className="text-sm text-green-700 space-y-1">
-                    <p>• <strong>Nombre d'étapes:</strong> {result.steps.length}</p>
-                    <p>• <strong>Méthode:</strong> Regroupement par distance moyenne non pondérée</p>
-                    <p>• <strong>Critère:</strong> Distance minimale à chaque étape</p>
-                    <p>• <strong>Résultat:</strong> Arbre phylogénétique ultrametrique</p>
-                  </div>
-                </div>
               </CardContent>
             </Card>
 

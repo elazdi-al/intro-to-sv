@@ -67,6 +67,39 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* Théorème de Bayes */}
+          <div className="pt-4">
+            <h3 className="font-semibold text-blue-600 mb-2">Théorème de Bayes (probabilités en génétique)</h3>
+            <div className="bg-blue-50 p-4 rounded border space-y-3">
+              <div className="text-center">
+                <div className="text-lg font-mono bg-white p-2 rounded border">
+                  P(A|B) = P(A ∩ B) / P(B)
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <h4 className="font-semibold mb-1">Définitions:</h4>
+                  <ul className="space-y-1">
+                    <li><strong>P(A|B):</strong> Probabilité a posteriori (après test)</li>
+                    <li><strong>P(B|A):</strong> Sensibilité du test</li>
+                    <li><strong>P(A):</strong> Probabilité a priori (prévalence)</li>
+                    <li><strong>P(B):</strong> Probabilité totale du résultat</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-1">Exemple génétique:</h4>
+                  <ul className="space-y-1">
+                    <li><strong>A:</strong> Être porteur d'une mutation</li>
+                    <li><strong>B:</strong> Test positif</li>
+                    <li><strong>P(A):</strong> Fréquence de la mutation dans la population</li>
+                    <li><strong>P(B|A):</strong> Probabilité que le test soit positif si mutation présente</li>
+                  </ul>
+                </div>
+              </div>
+             
+            </div>
+          </div>
+
           {/* Types de transmission maladies */}
           <div className="pt-4">
             <h3 className="font-semibold text-blue-600 mb-2">Types de transmission (exemples)</h3>

@@ -26,9 +26,10 @@ import {
   applyMutation,
   formatMutationDescription 
 } from '@/lib/dna-utils';
+import { useDNAStore } from '@/store/dna-store';
 
 export default function MutationAnalysisTool() {
-  const [rawSequence, setRawSequence] = useState('');
+  const { dnaSequence, setDnaSequence } = useDNAStore();
   const [mutationType, setMutationType] = useState<'substitution' | 'insertion' | 'deletion'>('substitution');
   const [position, setPosition] = useState('');
   const [newBase, setNewBase] = useState('');
@@ -36,7 +37,7 @@ export default function MutationAnalysisTool() {
   // Exemple par défaut
   const exampleSequence = "ATGGTGGAACTCCAAATTGAACGTGCAGCCCCGAAAGTGCATCTGGAATGA";
 
-  const cleanedDNA = useMemo(() => cleanDNA(rawSequence), [rawSequence]);
+  const cleanedDNA = useMemo(() => cleanDNA(dnaSequence), [dnaSequence]);
   
   // Analyse de la séquence originale
   const originalORF = useMemo(() => 
@@ -65,7 +66,7 @@ export default function MutationAnalysisTool() {
   }, [cleanedDNA, mutationType, position, newBase]);
 
   const handleExampleLoad = () => {
-    setRawSequence(exampleSequence);
+    setDnaSequence(exampleSequence);
     setPosition('42');
     setNewBase('G');
     setMutationType('substitution');
@@ -97,8 +98,8 @@ export default function MutationAnalysisTool() {
         </CardHeader>
         <CardContent className="space-y-4">
           <DNAInput
-            value={rawSequence}
-            onChange={setRawSequence}
+            value={dnaSequence}
+            onChange={setDnaSequence}
             label="Séquence ADN originale (5' → 3')"
             placeholder="Entrez votre séquence ADN..."
             id="sequence"
@@ -333,7 +334,7 @@ export default function MutationAnalysisTool() {
       )}
 
       {/* Messages d'erreur */}
-      {rawSequence && !originalORF?.protein && (
+      {dnaSequence && !originalORF?.protein && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
