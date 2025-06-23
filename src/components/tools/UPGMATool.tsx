@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { TreePine, Calculator, Info, Plus, Trash2 } from 'lucide-react'
+import { TreePine, Calculator, Info, Plus, Trash2, ArrowDown, Target } from 'lucide-react'
 import DynamicTable from '@/components/ui/dynamic-table'
 
 interface DistanceMatrix {
@@ -481,51 +481,63 @@ export default function UPGMATool() {
     setSequences(exampleSequences)
   }
 
-  const renderMatrix = (matrix: DistanceMatrix, highlightPair?: string[]) => {
+  const renderMatrix = (matrix: DistanceMatrix, highlightPair?: string[], title?: string) => {
     const species = Object.keys(matrix).sort()
     return (
-      <div className="overflow-x-auto">
-        <table className="min-w-full border border-gray-200">
-          <thead>
-            <tr>
-              <th className="border border-gray-200 p-2 bg-gray-50"></th>
-              {species.map(s => (
-                <th key={s} className="border border-gray-200 p-2 bg-gray-50 text-sm">{s}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {species.map(row => (
-              <tr key={row}>
-                <td className="border border-gray-200 p-2 bg-gray-50 font-medium text-sm">{row}</td>
-                {species.map(col => {
-                  const isHighlighted = highlightPair && 
-                    ((highlightPair[0] === row && highlightPair[1] === col) ||
-                     (highlightPair[1] === row && highlightPair[0] === col))
-                  
-                  const rowIndex = species.indexOf(row)
-                  const colIndex = species.indexOf(col)
-                  
-                  if (rowIndex > colIndex) {
+      <div className="space-y-2">
+        {title && (
+          <h4 className="font-medium text-sm text-gray-700">{title}</h4>
+        )}
+        <div className="overflow-x-auto">
+          <table className="min-w-full border border-gray-200 text-sm">
+            <thead>
+              <tr>
+                <th className="border border-gray-200 p-2 bg-gray-50 text-xs font-medium"></th>
+                {species.map(s => (
+                  <th key={s} className="border border-gray-200 p-2 bg-gray-50 text-xs font-medium">{s}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {species.map(row => (
+                <tr key={row}>
+                  <td className="border border-gray-200 p-2 bg-gray-50 font-medium text-xs">{row}</td>
+                  {species.map(col => {
+                    const isHighlighted = highlightPair && 
+                      ((highlightPair[0] === row && highlightPair[1] === col) ||
+                       (highlightPair[1] === row && highlightPair[0] === col))
+                    
+                    const rowIndex = species.indexOf(row)
+                    const colIndex = species.indexOf(col)
+                    
+                    if (rowIndex > colIndex) {
+                      return (
+                        <td key={col} className="border border-gray-200 p-2 text-center text-xs bg-gray-50">
+                          -
+                        </td>
+                      )
+                    }
+                    
                     return (
-                      <td key={col} className="border border-gray-200 p-2 text-center text-sm bg-gray-50">
-                        -
+                      <td key={col} className={`border border-gray-200 p-2 text-center text-xs ${
+                        isHighlighted ? 'bg-red-200 font-bold' : 
+                        rowIndex === colIndex ? 'bg-gray-100' : ''
+                      }`}>
+                        {matrix[row][col] !== undefined ? 
+                          (rowIndex === colIndex ? '0' : matrix[row][col].toFixed(1)) : '-'}
                       </td>
                     )
-                  }
-                  
-                  return (
-                    <td key={col} className={`border border-gray-200 p-2 text-center text-sm ${
-                      isHighlighted ? 'bg-yellow-200' : ''
-                    }`}>
-                      {matrix[row][col] !== undefined ? matrix[row][col] : '-'}
-                    </td>
-                  )
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {highlightPair && (
+          <div className="text-xs text-red-600 font-medium">
+            → Minimum distance: {matrix[highlightPair[0]][highlightPair[1]].toFixed(1)} between {highlightPair[0]} and {highlightPair[1]}
+          </div>
+        )}
       </div>
     )
   }
@@ -621,48 +633,130 @@ export default function UPGMATool() {
         )}
 
         {result && (
-          <div className="space-y-6">
+          <div className="space-y-8">
+            {/* Initial Distance Matrix */}
             {result.distances && (
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Distance Matrix</h3>
-                {renderMatrix(result.distances)}
-              </div>
+              <Card className="border-blue-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Target className="h-5 w-5 text-blue-600" />
+                    Initial Distance Matrix
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {renderMatrix(result.distances, undefined, "Distance matrix calculated from input sequences/data")}
+                </CardContent>
+              </Card>
             )}
 
-            <div>
-              <h3 className="text-lg font-semibold mb-2">UPGMA Clustering Steps</h3>
-              <div className="space-y-4">
+            {/* UPGMA Clustering Steps */}
+            <Card className="border-green-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Calculator className="h-5 w-5 text-green-600" />
+                  UPGMA Clustering Steps
+                </CardTitle>
+                <CardDescription>
+                  Step-by-step clustering process showing how the phylogenetic tree is constructed
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
                 {result.steps.map((step, index) => (
-                  <Card key={index} className="p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="outline">Step {step.stepNumber}</Badge>
-                      <span className="text-sm">{step.description}</span>
+                  <div key={index} className="space-y-3">
+                    {/* Step Header */}
+                    <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border">
+                      <Badge variant="outline" className="bg-white">
+                        Étape {step.stepNumber}
+                      </Badge>
+                      <div className="flex-1">
+                        <div className="font-medium text-sm text-gray-900">
+                          {step.description}
+                        </div>
+                        <div className="text-xs text-gray-600 mt-1">
+                          Distance minimale: <span className="font-semibold text-red-600">{step.minDistance.toFixed(1)}</span>
+                          {step.clusteredSpecies.length === 2 && (
+                            <> • Nouveau cluster: <span className="font-semibold text-blue-600">{step.newCluster}</span></>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-600 mb-2">
-                      Minimum distance: <strong>{step.minDistance}</strong>
-                    </div>
-                    {renderMatrix(step.matrix, step.clusteredSpecies)}
-                  </Card>
-                ))}
-              </div>
-            </div>
 
+                    {/* Matrix for this step */}
+                    <div className="pl-4 border-l-2 border-gray-200">
+                      {renderMatrix(
+                        step.matrix, 
+                        step.clusteredSpecies,
+                        `Matrice avant regroupement (Étape ${step.stepNumber})`
+                      )}
+                    </div>
+
+                    {/* Arrow indicating progression */}
+                    {index < result.steps.length - 1 && (
+                      <div className="flex justify-center py-2">
+                        <ArrowDown className="h-5 w-5 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {/* Summary */}
+                <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+                  <h4 className="font-semibold text-green-800 mb-2">Résumé du processus UPGMA</h4>
+                  <div className="text-sm text-green-700 space-y-1">
+                    <p>• <strong>Nombre d'étapes:</strong> {result.steps.length}</p>
+                    <p>• <strong>Méthode:</strong> Regroupement par distance moyenne non pondérée</p>
+                    <p>• <strong>Critère:</strong> Distance minimale à chaque étape</p>
+                    <p>• <strong>Résultat:</strong> Arbre phylogénétique ultrametrique</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Final Phylogenetic Tree */}
             {result.tree && (
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Phylogenetic Tree</h3>
-                <div className="bg-white border rounded-lg p-4">
-                  <TreeVisualization tree={result.tree} />
-                </div>
-                <div className="mt-4 text-sm text-gray-600">
-                  <p><strong>Tree Interpretation:</strong></p>
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>The tree shows evolutionary relationships with time on the vertical axis</li>
-                    <li>Branch points represent common ancestors</li>
-                    <li>Closer species share more recent common ancestors</li>
-                    <li>The tree is ultrametric (all leaves at the same distance from root)</li>
-                  </ul>
-                </div>
-              </div>
+              <Card className="border-purple-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <TreePine className="h-5 w-5 text-purple-600" />
+                    Arbre Phylogénétique Final
+                  </CardTitle>
+                  <CardDescription>
+                    Représentation graphique des relations évolutives obtenues par UPGMA
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-white border rounded-lg p-4">
+                    <TreeVisualization tree={result.tree} />
+                  </div>
+                  
+                  {/* Interpretation Guide */}
+                  <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                    <h4 className="font-semibold text-purple-800 mb-3">Interprétation de l'arbre</h4>
+                    <div className="grid md:grid-cols-2 gap-4 text-sm text-purple-700">
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <span className="text-purple-600">•</span>
+                          <span><strong>Axe vertical:</strong> Temps évolutif (passé → présent)</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-purple-600">•</span>
+                          <span><strong>Points de branchement:</strong> Ancêtres communs</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <span className="text-purple-600">•</span>
+                          <span><strong>Longueurs des branches:</strong> Distances évolutives</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-purple-600">•</span>
+                          <span><strong>Arbre ultrametrique:</strong> Toutes les feuilles au même niveau</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </div>
         )}

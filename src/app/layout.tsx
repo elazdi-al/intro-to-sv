@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
-import { Dna, Calculator, TreePine, Home, Brain, Users } from "lucide-react";
+import { Dna, Calculator, TreePine, Home, Brain, Users, Microscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const geistSans = Geist({
@@ -27,6 +27,7 @@ const navigation = [
   { name: 'Probabilités', href: '/probabilities', icon: Calculator },
   { name: 'Angelman', href: '/angelman', icon: Brain },
   { name: 'Prader-Willi', href: '/prader-willi', icon: Users },
+  { name: 'HUMARA', href: '/humara', icon: Microscope },
 ];
 
 export default function RootLayout({
